@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能石&装备交互系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+
+
+        body {
+            background-color: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .interface {
+            background-color: #2c2c44;
+            border: 2px solid #4e4e7a;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            min-height: 400px;
+        }
+
+        .interface h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #a8a8ff;
+            border-bottom: 1px solid #4e4e7a;
+            padding-bottom: 10px;
+        }
+
+        .backpack-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            position: relative;
+        }
+
+        .item-slot {
+            width: 60px;
+            height: 60px;
+            background-color: #3d3d66;
+            border: 2px solid #5e5e9e;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .item-slot.empty {
+            background-color: #2d2d4a;
+            border-style: dashed;
+        }
+
+        .item-slot:hover:not(.empty) {
+            border-color: #a8a8ff;
+            background-color: #4d4d88;
+        }
+
+        .skill-stone-img {
+            width: 40px;
+            height: 40px;
+            background-color: #ff4500;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* 辅助技能样式，使用原来的颜色 */
+        .support-skill-img {
+            width: 40px;
+            height: 40px;
+            background-color: #ff6b6b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .flame-shoot-img {
+            width: 40px;
+            height: 40px;
+            background-color: #ff4500;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 12px;
+        }
+
+        .extra-skill-img {
+            width: 40px;
+            height: 40px;
+            background-color: #ff9800;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 12px;
+        }
+
+        .gun-img {
+            width: 40px;
+            height: 40px;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tips {
+            position: absolute;
+            background-color: #1a1a2e;
+            border: 2px solid #a8a8ff;
+            border-radius: 4px;
+            padding: 10px;
+            min-width: 150px;
+            z-index: 100;
+            display: none;
+        }
+
+        .tips-special {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .need-gun-tips {
+            position: fixed;
+            background-color: #1a1a2e;
+            border: 2px solid #ff4500;
+            color: #ff4500;
+            border-radius: 4px;
+            padding: 10px;
+            min-width: 120px;
+            z-index: 100;
+            display: none;
+            pointer-events: none;
+        }
+
+        .item-slot .tips {
+            top: -100%;
+            left: 0;
+        }
+
+        .slot-tips {
+            display: none;
+            position: fixed;
+            background-color: #1a1a2e;
+            border: 2px solid #a8a8ff;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 101; /* 提高z-index，确保显示在需要装备手枪提示之上 */
+            gap: 5px;
+            flex-direction: column;
+        }
+
+        .rear-shoot-tips {
+            display: none;
+            position: fixed;
+            background-color: #1a1a2e;
+            border: 2px solid #ffd700;
+            border-radius: 4px;
+            padding: 10px;
+            z-index: 101;
+            gap: 5px;
+            flex-direction: column;
+        }
+
+        .slot-btn {
+            padding: 5px 10px;
+            background-color: #3d3d66;
+            border: 1px solid #5e5e9e;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slot-btn:hover {
+            background-color: #4d4d88;
+            border-color: #a8a8ff;
+        }
+
+        /* 标准技能槽容器保持grid布局 */
+        #skill-slots-container .skill-slots {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        /* 额外技能槽容器改为flex布局，每个技能一行 */
+        #extra-skill-slots-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+        }
+        
+        /* 额外技能行 */
+        .extra-skill-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .skill-slot {
+            background-color: #3d3d66;
+            border: 2px solid #5e5e9e;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .skill-slot.active {
+            width: 80px;
+            height: 80px;
+            background-color: #2c2c44;
+            border-color: #a8a8ff;
+        }
+        
+        .skill-slot.support {
+            width: 50px;
+            height: 50px;
+            background-color: #3d3d66;
+            border-color: #5e5e9e;
+            border-style: dashed;
+        }
+        
+        .skill-slot.active:hover {
+            border-color: #ffd700;
+            background-color: #4d4d88;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .skill-slot.support:hover {
+            border-color: #ff9800;
+            background-color: #4d4d88;
+        }
+
+        .extra-skill-slot {
+            width: 70px;
+            height: 70px;
+            background-color: #4527a0;
+            border: 2px dashed #ff9800;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            pointer-events: auto;
+            margin-bottom: 10px;
+        }
+        
+        /* 技能槽连接线样式 */
+        .skill-connection-line {
+            position: absolute;
+            width: 18px; /* 孔位宽度的1/4，70px / 4 ≈ 18px */
+            height: 100%;
+            background-color: #ff9800;
+            z-index: 50;
+        }
+
+        @keyframes blink {
+            0% { border-color: #ff9800; }
+            50% { border-color: #ffd700; }
+            100% { border-color: #ff9800; }
+        }
+        .extra-skill-slot.blink {
+            animation: blink 1s infinite;
+        }
+
+        .equipment-slot {
+            width: 80px;
+            height: 80px;
+            background-color: #3d3d66;
+            border: 2px solid #5e5e9e;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+
+        .skill-slot.highlight, .equipment-slot.highlight {
+            border-color: #ffd700;
+            background-color: #4d4d88;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .skill-slot.has-stone, .equipment-slot.has-gun {
+            border-color: #00ff9d;
+        }
+
+        .skill-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .bar {
+            width: 100%;
+            height: 60px;
+            background-color: #3d3d66;
+            border: 2px solid #5e5e9e;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .special-bar {
+            width: 100%;
+            height: 60px;
+            background-color: #2e1b69;
+            border: 2px solid #ff9800;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .special-bar.affiliate {
+            margin-top: -2px;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+
+        .special-bar.left-btn {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .special-skill-separator {
+            height: 15px;
+            border-bottom: 2px dashed #ff9800;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .bar-item {
+            width: 40px;
+            height: 40px;
+            display: none;
+        }
+
+        .special-bar-item {
+            width: 40px;
+            height: 40px;
+            display: block;
+        }
+
+        .floating-item {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 99;
+            display: none;
+        }
+
+        .floating-item .skill-stone-img, .floating-item .gun-img, .floating-item .flame-shoot-img {
+            width: 100%;
+            height: 100%;
+            opacity: 0.8;
+        }
+
+        .backpack-area.highlight {
+            border: 2px dashed #ffd700;
+            padding: 5px;
+            border-radius: 8px;
+        }
+        
+        /* 战甲天赋界面样式 */
+        .talent-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        .talent-row {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .talent-point {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            background-color: #3d3d66;
+            border: 2px solid #5e5e9e;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.5;
+        }
+        
+        .talent-point.unlocked {
+            opacity: 1;
+            border-color: #00ff9d;
+        }
+        
+        .talent-point.confirmed {
+            opacity: 1;
+            border-color: #ff6b35;
+            background-color: #4a4a6e;
+        }
+        
+        .talent-point:hover {
+            transform: scale(1.1);
+        }
+        
+        .talent-point.unlocked.blink {
+            animation: blink 1s infinite;
+        }
+        
+        .talent-dot {
+            width: 30px;
+            height: 30px;
+            background-color: #ff6b6b;
+            border-radius: 50%;
+            margin-bottom: 5px;
+        }
+        
+        .talent-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .talent-point .tips {
+            top: -120%;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .talent-point .tips .confirm-btn {
+            margin-top: 10px;
+            padding: 5px 15px;
+            background-color: #3d3d66;
+            border: 1px solid #5e5e9e;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .talent-point .tips .confirm-btn:hover {
+            background-color: #4d4d88;
+            border-color: #a8a8ff;
+        }
+        
+        /* 调整天赋点提示框的位置 */
+        #talent-b .tips {
+            left: 0;
+            transform: translateX(-100%);
+            margin-left: -10px;
+        }
+        
+        #talent-c .tips {
+            left: 100%;
+            transform: translateX(0);
+            margin-left: 10px;
+        }
+        
+        #talent-d .tips {
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #a8a8ff; margin-bottom: 20px;">技能石&装备交互系统</h1>
+
+    <div class="container">
+        <div class="interface">
+            <h2>背包界面</h2>
+            <div class="backpack-area" id="backpack-area">
+                <div class="item-slot" id="backpack-stone-slot">
+                    <div class="skill-stone-img">蜂群</div>
+                    <div class="tips" id="stone-tips">
+                        <p>物品类型：技能</p>
+                        <p>技能等级：3</p>
+                        <p>需求等级：1</p>
+                        <p>技能标签：范围</p>
+                        <p>需求装备：法杖</p>
+                    </div>
+                </div>
+                <div class="item-slot" id="backpack-flame-slot">
+                    <div class="flame-shoot-img">烈焰射击</div>
+                    <div class="tips" id="flame-tips">
+                        <p>物品类型：技能</p>
+                        <p>技能等级：5</p>
+                        <p>需求等级：2</p>
+                        <p>技能标签：射击</p>
+                        <p>需求装备：手枪</p>
+                    </div>
+                </div>
+                <div class="item-slot" id="backpack-lightning-slot">
+                    <div class="flame-shoot-img">悬浮闪电射击</div>
+                    <div class="tips" id="lightning-tips">
+                        <p>物品类型：技能</p>
+                        <p>技能等级：3</p>
+                        <p>需求等级：1</p>
+                        <p>技能标签：射击</p>
+                        <p>需要装备：手枪</p>
+                        <p>替换状态：悬浮射击</p>
+                    </div>
+                </div>
+                <div class="item-slot" id="backpack-gun-slot">
+                    <div class="gun-img">手枪</div>
+                    <div class="tips" id="gun-tips">
+                        <p>物品类型：手枪</p>
+                        <p>物品等级：2</p>
+                        <p>需求等级：1</p>
+                        <p class="tips-special">额外技能：射击</p>
+                        <p class="tips-special">额外技能：悬浮射击</p>
+                        <p class="tips-special">额外技能：后撤射击</p>
+                    </div>
+                </div>
+                <div class="item-slot" id="backpack-support-slot">
+                    <div class="support-skill-img">辅助技能1</div>
+                    <div class="tips" id="support-tips">
+                        <p>物品类型：辅助</p>
+                        <p>技能等级：2</p>
+                        <p>需求等级：1</p>
+                        <p class="tips-special">物品属性：辅助宝石</p>
+                    </div>
+                </div>
+                <div class="item-slot" id="backpack-shoot-support-slot">
+                    <div class="support-skill-img">射击辅助</div>
+                    <div class="tips" id="shoot-support-tips">
+                        <p>物品类型：辅助</p>
+                        <p>技能等级：2</p>
+                        <p>需求等级：1</p>
+                        <p class="tips-special">物品属性：辅助宝石</p>
+                        <p class="tips-special">辅助技能标签：射击</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="interface">
+            <h2>技能系统界面</h2>
+            <div id="extra-skill-slots-container" class="skill-slots"></div>
+            <div id="skill-slots-container">
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="1" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="1-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="1-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="1-3" data-type="support"></div>
+                </div>
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="2" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="2-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="2-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="2-3" data-type="support"></div>
+                </div>
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="3" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="3-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="3-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="3-3" data-type="support"></div>
+                </div>
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="4" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="4-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="4-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="4-3" data-type="support"></div>
+                </div>
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="5" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="5-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="5-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="5-3" data-type="support"></div>
+                </div>
+                <div class="skill-row">
+                    <div class="skill-slot active" data-slot="6" data-type="active">技能宝石孔位</div>
+                    <div class="skill-slot support" data-slot="6-1" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="6-2" data-type="support"></div>
+                    <div class="skill-slot support" data-slot="6-3" data-type="support"></div>
+                </div>
+            </div>
+            <div class="slot-tips" id="slot-tips"></div>
+            <div class="rear-shoot-tips" id="rear-shoot-tips"></div>
+            <div class="need-gun-tips" id="need-gun-tips">需要装备手枪</div>
+        </div>
+
+        <div class="interface">
+            <h2>技能槽位界面</h2>
+            <div id="special-skill-bars"></div>
+            <div id="special-skill-separator"></div>
+            <div class="skill-bars" id="normal-skill-bars">
+                <div class="bar">
+                    <span>技能按键：1</span>
+                    <div class="bar-item" id="bar-1"><div class="skill-stone-img">蜂群</div></div>
+                </div>
+                <div class="bar">
+                    <span>技能按键：2</span>
+                    <div class="bar-item" id="bar-2"><div class="skill-stone-img">蜂群</div></div>
+                </div>
+                <div class="bar">
+                    <span>技能按键：3</span>
+                    <div class="bar-item" id="bar-3"><div class="skill-stone-img">蜂群</div></div>
+                </div>
+                <div class="bar">
+                    <span>技能按键：4</span>
+                    <div class="bar-item" id="bar-4"><div class="skill-stone-img">蜂群</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="interface">
+            <h2>装备界面</h2>
+            <div class="equipment-slot" id="equipment-slot"></div>
+        </div>
+        
+        <div class="interface">
+            <h2>战甲天赋界面</h2>
+            <div class="talent-container" id="talent-container">
+                <!-- 第一排：A点 -->
+                <div class="talent-row">
+                    <div class="talent-point unlocked blink" id="talent-a">
+                        <div class="talent-dot"></div>
+                        <div class="talent-label">A</div>
+                        <div class="tips" id="talent-a-tips">
+                            <p>提高15%伤害</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 第二排：B和C点 -->
+                <div class="talent-row">
+                    <div class="talent-point" id="talent-b">
+                        <div class="talent-dot"></div>
+                        <div class="talent-label">B</div>
+                        <div class="tips" id="talent-b-tips">
+                            <p class="tips-special">额外技能：零点聚爆</p>
+                        </div>
+                    </div>
+                    <div class="talent-point" id="talent-c">
+                        <div class="talent-dot"></div>
+                        <div class="talent-label">C</div>
+                        <div class="tips" id="talent-c-tips">
+                            <p>射击击败的敌人会造成爆炸</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 第三排：D点 -->
+                <div class="talent-row">
+                    <div class="talent-point" id="talent-d">
+                        <div class="talent-dot"></div>
+                        <div class="talent-label">D</div>
+                        <div class="tips" id="talent-d-tips">
+                            <p>每造成一次爆炸，缩短所有技能1秒冷却时间</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-item" id="floating-stone">
+        <div class="skill-stone-img">蜂群</div>
+    </div>
+    <div class="floating-item" id="floating-flame">
+        <div class="flame-shoot-img">烈焰射击</div>
+    </div>
+    <div class="floating-item" id="floating-lightning">
+        <div class="flame-shoot-img">悬浮闪电射击</div>
+    </div>
+    <div class="floating-item" id="floating-gun">
+        <div class="gun-img">手枪</div>
+    </div>
+    <div class="floating-item" id="floating-support">
+        <div class="support-skill-img">辅助技能1</div>
+    </div>
+    <div class="floating-item" id="floating-shoot-support">
+        <div class="support-skill-img">射击辅助</div>
+    </div>
+
+    <script>
+        // ========== 核心元素获取 ==========
+        const backpackArea = document.getElementById('backpack-area');
+        const backpackStoneSlot = document.getElementById('backpack-stone-slot');
+        const backpackFlameSlot = document.getElementById('backpack-flame-slot');
+        const backpackLightningSlot = document.getElementById('backpack-lightning-slot');
+        const backpackGunSlot = document.getElementById('backpack-gun-slot');
+        const backpackSupportSlot = document.getElementById('backpack-support-slot');
+        const stoneTips = document.getElementById('stone-tips');
+        const flameTips = document.getElementById('flame-tips');
+        const lightningTips = document.getElementById('lightning-tips');
+        const supportTips = document.getElementById('support-tips');
+        const backpackShootSupportSlot = document.getElementById('backpack-shoot-support-slot');
+        const shootSupportTips = document.getElementById('shoot-support-tips');
+        
+        const floatingStone = document.getElementById('floating-stone');
+        const floatingFlame = document.getElementById('floating-flame');
+        const floatingLightning = document.getElementById('floating-lightning');
+        const floatingSupport = document.getElementById('floating-support');
+        const floatingShootSupport = document.getElementById('floating-shoot-support');
+        const skillSlotsContainer = document.getElementById('skill-slots-container');
+        const extraSkillSlotsContainer = document.getElementById('extra-skill-slots-container');
+        const slotTips = document.getElementById('slot-tips');
+        const normalSkillBars = document.getElementById('normal-skill-bars');
+        const specialSkillBars = document.getElementById('special-skill-bars');
+        const barItems = document.querySelectorAll('.bar-item');
+        const specialSkillSeparator = document.getElementById('special-skill-separator');
+        const rearShootTips = document.getElementById('rear-shoot-tips');
+        const needGunTips = document.getElementById('need-gun-tips');
+        
+        const floatingGun = document.getElementById('floating-gun');
+        const equipmentSlot = document.getElementById('equipment-slot');
+        
+        // 天赋点元素获取
+        const talentA = document.getElementById('talent-a');
+        const talentB = document.getElementById('talent-b');
+        const talentC = document.getElementById('talent-c');
+        const talentD = document.getElementById('talent-d');
+        
+        const talentATips = document.getElementById('talent-a-tips');
+        const talentBTips = document.getElementById('talent-b-tips');
+        const talentCTips = document.getElementById('talent-c-tips');
+        const talentDTips = document.getElementById('talent-d-tips');
+
+        // ========== 状态管理 ==========
+        let isDraggingStone = false;
+        let currentSkillSlot = null;
+        let dragSourceStone = null;
+        let slotStoneMap = {};
+        
+        let isDraggingFlame = false;
+        let dragSourceFlame = null;
+        let slotFlameMap = {};
+        let flameInstalledBars = [];
+        let leftBtnReplaced = false;
+        
+        let isDraggingLightning = false;
+        let dragSourceLightning = null;
+        let slotLightningMap = {};
+        let lightningInstalledBars = [];
+        let leftBtnReplacedWithLightning = false;
+        
+        let isDraggingGun = false;
+        let dragSourceGun = null;
+        let equipmentHasGun = false;
+        let extraSkillSlots = [];
+        let specialBarElements = [];
+        let rearShootSlot = null;
+        let shootSlot = null; // 新增：射击技能槽引用
+        let floatShootSlot = null; // 新增：悬浮射击技能槽引用
+        let blinkTimer = null;
+        let rearShootInstalledBars = [];
+        let beeInstalledBars = [];
+        let zeroPointInstalledBars = [];
+        
+        let isDraggingSupport = false;
+        let dragSourceSupport = null;
+        let slotSupportMap = {};
+        
+        let isDraggingShootSupport = false;
+        let dragSourceShootSupport = null;
+        let slotShootSupportMap = {};
+        
+        // 天赋点状态管理
+        let talentStates = {
+            a: {
+                unlocked: true,
+                confirmed: false,
+                selected: false
+            },
+            b: {
+                unlocked: false,
+                confirmed: false,
+                selected: false
+            },
+            c: {
+                unlocked: false,
+                confirmed: false,
+                selected: false
+            },
+            d: {
+                unlocked: false,
+                confirmed: false,
+                selected: false
+            }
+        };
+        
+        // 当前固定显示的tips
+        let fixedTips = null;
+
+        // ========== 初始化 ==========
+        const initSkillSlots = () => {
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => {
+                const slotId = `slot-${slot.dataset.slot}`;
+                slotStoneMap[slotId] = false;
+                slotFlameMap[slotId] = false;
+                slotLightningMap[slotId] = false;
+                slotSupportMap[slotId] = false;
+                slotShootSupportMap[slotId] = false;
+                slot.addEventListener('mousedown', handleSlotStoneDrag);
+                slot.addEventListener('mousedown', handleSlotFlameDrag);
+                slot.addEventListener('mousedown', handleSlotLightningDrag);
+                slot.addEventListener('mousedown', handleSlotSupportDrag);
+                slot.addEventListener('mousedown', handleSlotShootSupportDrag);
+            });
+        };
+        initSkillSlots();
+        
+        // 天赋点初始化
+        const initTalents = () => {
+            // 设置初始状态的视觉效果
+            updateTalentVisualState(talentA, 'a');
+            updateTalentVisualState(talentB, 'b');
+            updateTalentVisualState(talentC, 'c');
+            updateTalentVisualState(talentD, 'd');
+            
+            // 检查解锁条件
+            checkTalentUnlocks();
+            
+            // 添加事件监听
+            addTalentEventListeners();
+        };
+        
+        // 更新天赋点的视觉状态
+        const updateTalentVisualState = (element, talentId) => {
+            const state = talentStates[talentId];
+            
+            element.classList.remove('unlocked', 'confirmed', 'blink');
+            
+            if (state.confirmed) {
+                element.classList.add('confirmed');
+            } else if (state.unlocked) {
+                element.classList.add('unlocked', 'blink');
+                // 当B天赋进入解锁状态时，移除零点聚爆技能槽和技能槽位中的零点聚爆
+                if (talentId === 'b') {
+                    removeZeroPointSkillSlot();
+                }
+            }
+        };
+
+        // 检查天赋点的解锁条件
+        const checkTalentUnlocks = () => {
+            // B和C的解锁条件：A已确认
+            if (talentStates.a.confirmed) {
+                talentStates.b.unlocked = true;
+                talentStates.c.unlocked = true;
+                updateTalentVisualState(talentB, 'b');
+                updateTalentVisualState(talentC, 'c');
+            }
+            
+            // D的解锁条件：B或C已确认
+            if (talentStates.b.confirmed || talentStates.c.confirmed) {
+                talentStates.d.unlocked = true;
+                updateTalentVisualState(talentD, 'd');
+            }
+        };
+        
+        // 添加天赋点事件监听
+        const addTalentEventListeners = () => {
+            const talents = [
+                { element: talentA, id: 'a', tips: talentATips },
+                { element: talentB, id: 'b', tips: talentBTips },
+                { element: talentC, id: 'c', tips: talentCTips },
+                { element: talentD, id: 'd', tips: talentDTips }
+            ];
+            
+            talents.forEach(({ element, id, tips }) => {
+                // 鼠标悬停显示tips
+                element.addEventListener('mouseenter', () => {
+                    if (talentStates[id].unlocked && !fixedTips) {
+                        tips.style.display = 'block';
+                    }
+                });
+                
+                // 鼠标离开隐藏tips（除非是固定的）
+                element.addEventListener('mouseleave', () => {
+                    if (!fixedTips || fixedTips !== tips) {
+                        tips.style.display = 'none';
+                    }
+                });
+                
+                // 点击事件
+                element.addEventListener('click', () => {
+                    if (talentStates[id].unlocked && !talentStates[id].confirmed) {
+                        handleTalentClick(element, id, tips);
+                    }
+                });
+            });
+        };
+        
+        // 处理天赋点点击
+        const handleTalentClick = (element, talentId, tips) => {
+            // 固定tips
+            fixedTips = tips;
+            tips.style.display = 'block';
+            
+            // 添加确认按钮
+            if (!tips.querySelector('.confirm-btn')) {
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'confirm-btn slot-btn';
+                confirmBtn.textContent = '确定';
+                confirmBtn.addEventListener('click', () => {
+                    confirmTalentSelection(talentId);
+                });
+                tips.appendChild(confirmBtn);
+            }
+        };
+        
+        // 确认天赋点选择
+        const confirmTalentSelection = (talentId) => {
+            // B和C的互斥逻辑
+            if (talentId === 'b' && talentStates.c.confirmed) {
+                talentStates.c.confirmed = false;
+                updateTalentVisualState(talentC, 'c');
+            } else if (talentId === 'c' && talentStates.b.confirmed) {
+                talentStates.b.confirmed = false;
+                updateTalentVisualState(talentB, 'b');
+                // 当B不再确认时，移除零点聚爆技能槽和技能槽位中的零点聚爆
+                removeZeroPointSkillSlot();
+            }
+            
+            // 设置当前天赋点为确认状态
+            talentStates[talentId].confirmed = true;
+            
+            // 获取对应的天赋点元素
+            let element;
+            switch (talentId) {
+                case 'a': element = talentA; break;
+                case 'b': element = talentB; break;
+                case 'c': element = talentC; break;
+                case 'd': element = talentD; break;
+            }
+            
+            updateTalentVisualState(element, talentId);
+            
+            // 如果是B天赋确认，添加零点聚爆技能槽
+            if (talentId === 'b') {
+                addZeroPointSkillSlot();
+            }
+            
+            // 重置固定tips
+            if (fixedTips) {
+                // 移除确认按钮
+                const confirmBtn = fixedTips.querySelector('.confirm-btn');
+                if (confirmBtn) {
+                    confirmBtn.remove();
+                }
+                fixedTips.style.display = 'none';
+                fixedTips = null;
+            }
+            
+            // 重新检查解锁条件
+            checkTalentUnlocks();
+        };
+        
+        // 页面加载完成后初始化天赋点
+        document.addEventListener('DOMContentLoaded', initTalents);
+
+        // ========== 零点聚爆技能槽管理 ==========
+        // 添加零点聚爆技能槽
+        const addZeroPointSkillSlot = () => {
+            // 先检查并移除已存在的零点聚爆技能槽和辅助技能孔位
+            const skillsContainer = document.getElementById('extra-skill-slots-container');
+            if (skillsContainer) {
+                // 移除零点聚爆所在的整行
+                const existingZeroPointRows = skillsContainer.querySelectorAll('.extra-skill-row');
+                existingZeroPointRows.forEach(row => {
+                    const zeroPointSlot = row.querySelector('.extra-skill-slot[data-skill="零点聚爆"]');
+                    if (zeroPointSlot) {
+                        zeroPointSlot.removeEventListener('click', handleZeroPointClick);
+                        row.remove();
+                        // 从extraSkillSlots中移除该行的所有槽位
+                        const rowSlots = Array.from(row.querySelectorAll('.extra-skill-slot, .skill-slot'));
+                        extraSkillSlots = extraSkillSlots.filter(slot => !rowSlots.includes(slot));
+                    }
+                });
+            }
+            
+            // 重置零点聚爆槽引用
+            zeroPointSlot = null;
+            
+            // 创建技能行容器
+            const skillRow = document.createElement('div');
+            skillRow.className = 'extra-skill-row';
+            
+            // 创建零点聚爆技能槽
+            const slot = document.createElement('div');
+            slot.className = 'extra-skill-slot';
+            slot.innerHTML = '<div class="extra-skill-img">零点聚爆</div>';
+            slot.dataset.skill = '零点聚爆';
+            zeroPointSlot = slot;
+            slot.classList.add('blink');
+            slot.addEventListener('click', handleZeroPointClick);
+            
+            // 添加主技能槽到行容器
+            skillRow.appendChild(slot);
+            extraSkillSlots.push(slot);
+            
+            // 为零点聚爆创建三个辅助技能孔位
+            for (let i = 1; i <= 3; i++) {
+                const supportSlot = document.createElement('div');
+                supportSlot.className = 'skill-slot support';
+                supportSlot.dataset.slot = `zero-${i}`;
+                supportSlot.dataset.type = 'support';
+                
+                // 绑定与标准技能槽相同的拖拽事件监听器
+                const slotId = `slot-${supportSlot.dataset.slot}`;
+                slotStoneMap[slotId] = false;
+                slotFlameMap[slotId] = false;
+                slotLightningMap[slotId] = false;
+                slotSupportMap[slotId] = false;
+                slotShootSupportMap[slotId] = false;
+                supportSlot.addEventListener('mousedown', handleSlotStoneDrag);
+                supportSlot.addEventListener('mousedown', handleSlotFlameDrag);
+                supportSlot.addEventListener('mousedown', handleSlotLightningDrag);
+                supportSlot.addEventListener('mousedown', handleSlotSupportDrag);
+                supportSlot.addEventListener('mousedown', handleSlotShootSupportDrag);
+                
+                // 添加辅助技能孔位到行容器
+                skillRow.appendChild(supportSlot);
+                extraSkillSlots.push(supportSlot);
+            }
+            
+            // 将整个技能行添加到额外技能槽容器中，确保在最后一个位置
+            skillsContainer.appendChild(skillRow);
+            
+            // 更新射击与悬浮射击技能槽之间的连接线位置
+            updateShootFloatConnectionLine();
+        };
+        
+
+        
+        // 移除零点聚爆技能槽
+        const removeZeroPointSkillSlot = () => {
+            const skillsContainer = document.getElementById('extra-skill-slots-container');
+            if (skillsContainer) {
+                // 找到零点聚爆所在的行
+                const existingZeroPointRows = skillsContainer.querySelectorAll('.extra-skill-row');
+                existingZeroPointRows.forEach(row => {
+                    const zeroPointSlot = row.querySelector('.extra-skill-slot[data-skill="零点聚爆"]');
+                    if (zeroPointSlot) {
+                        // 检查行中的所有辅助技能槽，将辅助技能放回背包
+                        const supportSlots = row.querySelectorAll('.skill-slot.support');
+                        supportSlots.forEach(slot => {
+                            // 检查辅助技能孔位中是否有辅助技能1
+                            if (slot.innerHTML.includes('辅助技能1')) {
+                                // 将辅助技能1放回背包
+                                if (backpackSupportSlot.classList.contains('empty')) {
+                                    backpackSupportSlot.classList.remove('empty');
+                                    backpackSupportSlot.innerHTML = '<div class="support-skill-img">辅助技能1</div>';
+                                    backpackSupportSlot.appendChild(supportTips);
+                                }
+                                // 更新状态映射
+                                const slotId = `slot-${slot.dataset.slot}`;
+                                slotSupportMap[slotId] = false;
+                            }
+                        });
+                        
+                        // 移除事件监听器
+                        zeroPointSlot.removeEventListener('click', handleZeroPointClick);
+                        
+                        // 从extraSkillSlots中移除该行的所有槽位
+                        const rowSlots = Array.from(row.querySelectorAll('.extra-skill-slot, .skill-slot'));
+                        extraSkillSlots = extraSkillSlots.filter(slot => !rowSlots.includes(slot));
+                        
+                        // 移除整行
+                        row.remove();
+                    }
+                });
+            }
+            
+            // 重置零点聚爆槽引用
+            zeroPointSlot = null;
+            
+            // 移除所有技能槽位中的零点聚爆
+            removeAllZeroPointFromBars();
+            
+            // 更新射击与悬浮射击技能槽之间的连接线位置
+            updateShootFloatConnectionLine();
+        };
+
+        // ========== 蜂群交互逻辑 ==========
+        backpackStoneSlot.addEventListener('mouseenter', () => {
+            if (!backpackStoneSlot.classList.contains('empty')) stoneTips.style.display = 'block';
+        });
+        backpackStoneSlot.addEventListener('mouseleave', () => {
+            stoneTips.style.display = 'none';
+        });
+
+        backpackStoneSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackStoneSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingStone = true;
+            dragSourceStone = 'backpack';
+            floatingStone.style.display = 'block';
+            updateFloatingPosition(e, floatingStone);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        });
+
+        function handleSlotStoneDrag(e) {
+            const slotId = `slot-${this.dataset.slot}`;
+            if (e.button !== 0 || !slotStoneMap[slotId]) return;
+            
+            e.preventDefault();
+            isDraggingStone = true;
+            dragSourceStone = slotId;
+            floatingStone.style.display = 'block';
+            updateFloatingPosition(e, floatingStone);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        }
+
+        // ========== 烈焰射击交互逻辑 ==========
+        backpackFlameSlot.addEventListener('mouseenter', () => {
+            if (!backpackFlameSlot.classList.contains('empty')) flameTips.style.display = 'block';
+        });
+        backpackFlameSlot.addEventListener('mouseleave', () => {
+            flameTips.style.display = 'none';
+        });
+
+        backpackFlameSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackFlameSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingFlame = true;
+            dragSourceFlame = 'backpack';
+            floatingFlame.style.display = 'block';
+            updateFloatingPosition(e, floatingFlame);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        });
+
+        function handleSlotFlameDrag(e) {
+            const slotId = `slot-${this.dataset.slot}`;
+            if (e.button !== 0 || !slotFlameMap[slotId]) return;
+            
+            e.preventDefault();
+            isDraggingFlame = true;
+            dragSourceFlame = slotId;
+            floatingFlame.style.display = 'block';
+            updateFloatingPosition(e, floatingFlame);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        }
+        
+        // ========== 悬浮闪电射击交互逻辑 ==========
+        backpackLightningSlot.addEventListener('mouseenter', () => {
+            if (!backpackLightningSlot.classList.contains('empty')) lightningTips.style.display = 'block';
+        });
+        backpackLightningSlot.addEventListener('mouseleave', () => {
+            lightningTips.style.display = 'none';
+        });
+
+        backpackLightningSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackLightningSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingLightning = true;
+            dragSourceLightning = 'backpack';
+            floatingLightning.style.display = 'block';
+            updateFloatingPosition(e, floatingLightning);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        });
+
+        function handleSlotLightningDrag(e) {
+            const slotId = `slot-${this.dataset.slot}`;
+            if (e.button !== 0 || !slotLightningMap[slotId]) return;
+            
+            e.preventDefault();
+            isDraggingLightning = true;
+            dragSourceLightning = slotId;
+            floatingLightning.style.display = 'block';
+            updateFloatingPosition(e, floatingLightning);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        }
+
+        // ========== 辅助技能石交互逻辑 ==========
+        backpackSupportSlot.addEventListener('mouseenter', () => {
+            if (!backpackSupportSlot.classList.contains('empty')) supportTips.style.display = 'block';
+        });
+        backpackSupportSlot.addEventListener('mouseleave', () => {
+            supportTips.style.display = 'none';
+        });
+        
+        backpackSupportSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackSupportSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingSupport = true;
+            dragSourceSupport = 'backpack';
+            floatingSupport.style.display = 'block';
+            updateFloatingPosition(e, floatingSupport);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        });
+        
+        // 射击辅助技能石背包事件处理
+        backpackShootSupportSlot.addEventListener('mouseenter', () => {
+            if (!backpackShootSupportSlot.classList.contains('empty')) shootSupportTips.style.display = 'block';
+        });
+        backpackShootSupportSlot.addEventListener('mouseleave', () => {
+            shootSupportTips.style.display = 'none';
+        });
+        
+        backpackShootSupportSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackShootSupportSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingShootSupport = true;
+            dragSourceShootSupport = 'backpack';
+            floatingShootSupport.style.display = 'block';
+            updateFloatingPosition(e, floatingShootSupport);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        });
+        
+        function handleSlotSupportDrag(e) {
+            const slotId = `slot-${this.dataset.slot}`;
+            if (e.button !== 0 || !slotSupportMap[slotId]) return;
+            
+            e.preventDefault();
+            isDraggingSupport = true;
+            dragSourceSupport = slotId;
+            floatingSupport.style.display = 'block';
+            updateFloatingPosition(e, floatingSupport);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        }
+        
+        function handleSlotShootSupportDrag(e) {
+            const slotId = `slot-${this.dataset.slot}`;
+            if (e.button !== 0 || !slotShootSupportMap[slotId]) return;
+            
+            e.preventDefault();
+            isDraggingShootSupport = true;
+            dragSourceShootSupport = slotId;
+            floatingShootSupport.style.display = 'block';
+            updateFloatingPosition(e, floatingShootSupport);
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.add('highlight'));
+            backpackArea.classList.add('highlight');
+            needGunTips.style.display = 'none';
+        }
+        
+        // ========== 手枪交互逻辑 ==========
+        backpackGunSlot.addEventListener('mouseenter', () => {
+            if (!backpackGunSlot.classList.contains('empty')) gunTips.style.display = 'block';
+        });
+        backpackGunSlot.addEventListener('mouseleave', () => {
+            gunTips.style.display = 'none';
+        });
+
+        backpackGunSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || backpackGunSlot.classList.contains('empty')) return;
+            
+            e.preventDefault();
+            isDraggingGun = true;
+            dragSourceGun = 'backpack';
+            floatingGun.style.display = 'block';
+            updateFloatingPosition(e, floatingGun);
+            
+            equipmentSlot.classList.add('highlight');
+            backpackArea.classList.add('highlight');
+        });
+
+        // 装备槽拖动手枪时仅删除技能槽位的烈焰射击，保留技能槽中的
+        equipmentSlot.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || !equipmentHasGun) return;
+            
+            e.preventDefault();
+            
+            // 仅删除技能槽位的烈焰射击（不修改技能槽和背包）
+            removeFlameFromBarsOnly();
+            
+            // 拖拽手枪时，如果“射击辅助”在技能系统界面的辅助孔位上，则将其移回背包
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => {
+                if (slot.dataset.type === 'support' && slotShootSupportMap[`slot-${slot.dataset.slot}`]) {
+                    // 将射击辅助移回背包
+                    if (backpackShootSupportSlot.classList.contains('empty')) {
+                        backpackShootSupportSlot.classList.remove('empty');
+                        backpackShootSupportSlot.innerHTML = '<div class="support-skill-img">射击辅助</div>';
+                        backpackShootSupportSlot.appendChild(shootSupportTips);
+                    }
+                    
+                    // 清空技能槽
+                    slot.innerHTML = '';
+                    slot.classList.remove('has-stone');
+                    slotShootSupportMap[`slot-${slot.dataset.slot}`] = false;
+                }
+            });
+            
+            removeExtraSkillSlots();
+            removeSpecialSkillBars();
+            
+            // 拖拽开始时就清空装备界面
+            equipmentSlot.innerHTML = '';
+            equipmentSlot.classList.remove('has-gun');
+            equipmentHasGun = false;
+            
+            isDraggingGun = true;
+            dragSourceGun = 'equipment';
+            floatingGun.style.display = 'block';
+            updateFloatingPosition(e, floatingGun);
+            
+            equipmentSlot.classList.add('highlight');
+            backpackArea.classList.add('highlight');
+        });
+
+        // ========== 动态创建/删除额外元素 ==========
+        // 更新射击与悬浮射击技能槽之间的连接线位置
+        const updateShootFloatConnectionLine = () => {
+            // 延迟执行，确保DOM已经更新
+            setTimeout(() => {
+                // 获取射击和悬浮射击技能槽
+                const shootSkillSlot = shootSlot;
+                const floatShootSkillSlot = floatShootSlot;
+                // 获取技能槽容器
+                const extraSkillSlotsContainer = document.getElementById('extra-skill-slots-container');
+                
+                if (shootSkillSlot && floatShootSkillSlot && extraSkillSlotsContainer) {
+                    // 移除已存在的连接线
+                    const existingLine = document.querySelector('.skill-connection-line');
+                    if (existingLine) {
+                        existingLine.remove();
+                    }
+                    
+                    // 创建新的连接线
+                    const connectionLine = document.createElement('div');
+                    connectionLine.className = 'skill-connection-line';
+                    
+                    // 获取容器和两个技能槽的位置信息
+                    const containerRect = extraSkillSlotsContainer.getBoundingClientRect();
+                    const shootRect = shootSkillSlot.getBoundingClientRect();
+                    const floatRect = floatShootSkillSlot.getBoundingClientRect();
+                    
+                    // 计算连接线的位置（相对于容器）
+                    const lineLeft = (shootRect.left - containerRect.left + shootRect.width / 2) - 9; // 9px是18px宽度的一半
+                    const lineTop = shootRect.bottom - containerRect.top;
+                    const lineHeight = floatRect.top - shootRect.bottom;
+                    
+                    connectionLine.style.left = `${lineLeft}px`;
+                    connectionLine.style.top = `${lineTop}px`;
+                    connectionLine.style.height = `${lineHeight}px`;
+                    
+                    // 添加连接线到容器
+                    extraSkillSlotsContainer.appendChild(connectionLine);
+                }
+            }, 0);
+        };
+        
+        const createExtraSkillSlots = () => {
+            const skills = ['射击', '悬浮射击', '后撤射击'];
+            extraSkillSlots = [];
+            
+            skills.forEach((skillName, index) => {
+                // 创建技能行容器
+                const skillRow = document.createElement('div');
+                skillRow.className = 'extra-skill-row';
+                
+                // 创建主技能槽
+                const slot = document.createElement('div');
+                slot.className = 'extra-skill-slot';
+                slot.innerHTML = `<div class="extra-skill-img">${skillName}</div>`;
+                slot.dataset.skill = skillName;
+                slot.dataset.index = index;
+                
+                if (skillName === '后撤射击') {
+                    rearShootSlot = slot;
+                    slot.classList.add('blink');
+                    slot.addEventListener('click', handleRearShootClick);
+                }
+                
+                // 新增：射击技能槽处理
+                if (skillName === '射击') {
+                    shootSlot = slot;
+                    // 如果左键已被替换为烈焰射击，射击槽也开始闪烁
+                    if (leftBtnReplaced) {
+                        shootSlot.classList.add('blink');
+                    }
+                    slot.addEventListener('click', handleShootClick); // 绑定点击事件
+                }
+                
+                // 新增：悬浮射击技能槽处理
+                if (skillName === '悬浮射击') {
+                    floatShootSlot = slot;
+                    slot.addEventListener('click', handleFloatShootClick); // 绑定点击事件
+                }
+                
+                // 添加主技能槽到行容器
+                skillRow.appendChild(slot);
+                extraSkillSlots.push(slot);
+                
+                // 为当前技能创建三个辅助技能孔位
+                for (let i = 1; i <= 3; i++) {
+                    const supportSlot = document.createElement('div');
+                    supportSlot.className = 'skill-slot support';
+                    supportSlot.dataset.slot = `${skillName}-${i}`;
+                    supportSlot.dataset.type = 'support';
+                    
+                    // 绑定与标准技能槽相同的拖拽事件监听器
+                    const slotId = `slot-${supportSlot.dataset.slot}`;
+                    slotStoneMap[slotId] = false;
+                    slotFlameMap[slotId] = false;
+                    slotLightningMap[slotId] = false;
+                    slotSupportMap[slotId] = false;
+                    slotShootSupportMap[slotId] = false;
+                    supportSlot.addEventListener('mousedown', handleSlotStoneDrag);
+                    supportSlot.addEventListener('mousedown', handleSlotFlameDrag);
+                    supportSlot.addEventListener('mousedown', handleSlotLightningDrag);
+                    supportSlot.addEventListener('mousedown', handleSlotSupportDrag);
+                    supportSlot.addEventListener('mousedown', handleSlotShootSupportDrag);
+                    
+                    // 添加辅助技能孔位到行容器
+                    skillRow.appendChild(supportSlot);
+                    extraSkillSlots.push(supportSlot);
+                }
+                
+                // 将整个技能行添加到容器
+            extraSkillSlotsContainer.appendChild(skillRow);
+        });
+        
+        // 更新射击与悬浮射击技能槽之间的连接线位置
+        updateShootFloatConnectionLine();
+    };
+
+        const removeExtraSkillSlots = () => {
+            if (blinkTimer) {
+                clearInterval(blinkTimer);
+                blinkTimer = null;
+            }
+            if (rearShootSlot) {
+                rearShootSlot.removeEventListener('click', handleRearShootClick);
+                rearShootSlot = null;
+            }
+            // 新增：移除射击槽的事件和引用
+            if (shootSlot) {
+                shootSlot.removeEventListener('click', handleShootClick);
+                shootSlot = null;
+            }
+            // 新增：移除悬浮射击槽的事件和引用
+            if (floatShootSlot) {
+                floatShootSlot.removeEventListener('click', handleFloatShootClick);
+                floatShootSlot = null;
+            }
+            
+            // 只移除手枪带来的技能槽（射击、悬浮射击、后撤射击）及其辅助技能孔位，保留零点聚爆和其辅助技能孔位
+            const skillsContainer = document.getElementById('extra-skill-slots-container');
+            if (skillsContainer) {
+                // 找到所有包含射击、悬浮射击、后撤射击的技能行
+                const skillRows = skillsContainer.querySelectorAll('.extra-skill-row');
+                skillRows.forEach(row => {
+                    const mainSlot = row.querySelector('.extra-skill-slot');
+                    if (mainSlot && (mainSlot.innerHTML.includes('射击') || 
+                        mainSlot.innerHTML.includes('悬浮射击') || 
+                        mainSlot.innerHTML.includes('后撤射击'))) {
+                        
+                        // 检查并处理该行中的所有辅助技能槽
+                        const supportSlots = row.querySelectorAll('.skill-slot.support');
+                        supportSlots.forEach(slot => {
+                            // 检查辅助技能孔位中是否有辅助技能1
+                            if (slot.innerHTML.includes('辅助技能1')) {
+                                // 将辅助技能1放回背包
+                                if (backpackSupportSlot.classList.contains('empty')) {
+                                    backpackSupportSlot.classList.remove('empty');
+                                    backpackSupportSlot.innerHTML = '<div class="support-skill-img">辅助技能1</div>';
+                                    backpackSupportSlot.appendChild(supportTips);
+                                }
+                                // 更新状态映射
+                                const slotId = `slot-${slot.dataset.slot}`;
+                                slotSupportMap[slotId] = false;
+                            }
+                        });
+                        
+                        // 移除事件监听器
+                        if (mainSlot === rearShootSlot) {
+                            mainSlot.removeEventListener('click', handleRearShootClick);
+                        } else if (mainSlot === shootSlot) {
+                            mainSlot.removeEventListener('click', handleShootClick);
+                        }
+                        
+                        // 从extraSkillSlots数组中移除该行的所有槽位
+                        const rowSlots = Array.from(row.querySelectorAll('.extra-skill-slot, .skill-slot'));
+                        extraSkillSlots = extraSkillSlots.filter(slot => !rowSlots.includes(slot));
+                        
+                        // 移除整行
+                        row.remove();
+                    }
+                });
+            }
+            
+            // 重置相关引用，但保留zeroPointSlot和zeroPoint相关数据
+            rearShootSlot = null;
+            shootSlot = null;
+            
+            // 移除射击与悬浮射击技能槽之间的连接线
+            const connectionLine = document.querySelector('.skill-connection-line');
+            if (connectionLine) {
+                connectionLine.remove();
+            }
+            
+            // 只移除后撤射击的技能槽位，保留零点聚爆的技能槽位
+            removeAllRearShootFromBars();
+            rearShootTips.style.display = 'none';
+        };
+
+        const createSpecialSkillBars = () => {
+            specialBarElements = [];
+            
+            const leftBar = document.createElement('div');
+            leftBar.className = 'special-bar left-btn';
+            leftBar.innerHTML = `
+                <span>左键</span>
+                <div class="special-bar-item" id="left-bar-item">
+                    <div class="extra-skill-img">射击</div>
+                </div>
+            `;
+            specialSkillBars.appendChild(leftBar);
+            specialBarElements.push(leftBar);
+
+            const affiliateBar = document.createElement('div');
+            affiliateBar.className = 'special-bar affiliate';
+            affiliateBar.innerHTML = `
+                <span>附属技能：悬浮状态</span>
+                <div class="special-bar-item" id="affiliate-bar-item"><div class="extra-skill-img">悬浮射击</div></div>
+            `;
+            specialSkillBars.appendChild(affiliateBar);
+            specialBarElements.push(affiliateBar);
+
+            const separator = document.createElement('div');
+            separator.className = 'special-skill-separator';
+            specialSkillSeparator.appendChild(separator);
+        };
+
+        const removeSpecialSkillBars = () => {
+            specialBarElements.forEach(bar => bar.remove());
+            specialBarElements = [];
+            specialSkillSeparator.innerHTML = '';
+        };
+
+        // ========== 新增：射击技能槽点击逻辑 ==========
+        function handleShootClick(e) {
+            e.stopPropagation();
+            slotTips.innerHTML = '';
+            
+            // 创建左键按钮
+            const leftBtn = document.createElement('button');
+            leftBtn.className = 'slot-btn';
+            leftBtn.dataset.bar = 'left-reset';
+            leftBtn.textContent = '左键';
+            leftBtn.addEventListener('click', handleShootBarSelect);
+            slotTips.appendChild(leftBtn);
+            
+            // 定位tips到射击槽右侧
+            const rect = shootSlot.getBoundingClientRect();
+            slotTips.style.display = 'flex';
+            slotTips.style.left = `${rect.right + 15}px`;
+            slotTips.style.top = `${rect.top}px`;
+        }
+        
+        // 新增：悬浮射击技能槽点击事件处理
+        function handleFloatShootClick(e) {
+            e.stopPropagation();
+            slotTips.innerHTML = '';
+            
+            // 创建左键按钮
+            const leftBtn = document.createElement('button');
+            leftBtn.className = 'slot-btn';
+            leftBtn.dataset.bar = 'float-shoot';
+            leftBtn.textContent = '左键-附属技能：悬浮状态';
+            leftBtn.addEventListener('click', handleFloatShootBarSelect);
+            slotTips.appendChild(leftBtn);
+            
+            // 定位tips到悬浮射击槽右侧
+            const rect = floatShootSlot.getBoundingClientRect();
+            slotTips.style.display = 'flex';
+            slotTips.style.left = `${rect.right + 15}px`;
+            slotTips.style.top = `${rect.top}px`;
+        }
+
+        function handleShootBarSelect(e) {
+            e.stopPropagation();
+            // 恢复左键为射击
+            const leftBarItem = document.getElementById('left-bar-item');
+            leftBarItem.innerHTML = '<div class="extra-skill-img">射击</div>';
+            leftBtnReplaced = false;
+            
+            // 停止射击槽的闪烁
+            if (shootSlot) {
+                shootSlot.classList.remove('blink');
+            }
+            
+            slotTips.style.display = 'none';
+        }
+        
+        // 新增：悬浮射击tips按钮点击处理函数
+        function handleFloatShootBarSelect(e) {
+            e.stopPropagation();
+            // 将附属技能：悬浮状态孔位中的技能替换为"悬浮射击"
+            const affiliateBarItem = document.getElementById('affiliate-bar-item');
+            affiliateBarItem.innerHTML = '<div class="extra-skill-img">悬浮射击</div>';
+            leftBtnReplacedWithLightning = false;
+            
+            slotTips.style.display = 'none';
+        }
+
+        // ========== 后撤射击核心逻辑 ==========
+        function handleRearShootClick(e) {
+            e.stopPropagation();
+            rearShootTips.innerHTML = '';
+            
+            [1,2,3,4].forEach(barId => {
+                const btn = document.createElement('button');
+                btn.className = 'slot-btn';
+                btn.dataset.bar = barId;
+                btn.textContent = `技能按键${barId}`;
+                btn.addEventListener('click', handleRearShootBarSelect);
+                rearShootTips.appendChild(btn);
+            });
+            
+            const rect = rearShootSlot.getBoundingClientRect();
+            rearShootTips.style.display = 'flex';
+            rearShootTips.style.left = `${rect.right + 15}px`;
+            rearShootTips.style.top = `${rect.top}px`;
+        }
+
+        function handleRearShootBarSelect(e) {
+            e.stopPropagation();
+            const barId = e.target.dataset.bar;
+            
+            if (!rearShootInstalledBars.includes(barId)) {
+                rearShootInstalledBars.push(barId);
+            }
+            beeInstalledBars = beeInstalledBars.filter(id => id !== barId);
+            flameInstalledBars = flameInstalledBars.filter(id => id !== barId);
+            
+            const targetBarItem = document.getElementById(`bar-${barId}`);
+            targetBarItem.innerHTML = '<div class="extra-skill-img">后撤射击</div>';
+            targetBarItem.style.display = 'block';
+            
+            rearShootTips.style.display = 'none';
+        }
+
+        function removeAllRearShootFromBars() {
+            rearShootInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            rearShootInstalledBars = [];
+        }
+        
+        // ========== 零点聚爆核心逻辑 ==========
+        let zeroPointSlot = null;
+        
+        function handleZeroPointClick(e) {
+            e.stopPropagation();
+            rearShootTips.innerHTML = '';
+            
+            [1,2,3,4].forEach(barId => {
+                const btn = document.createElement('button');
+                btn.className = 'slot-btn';
+                btn.dataset.bar = barId;
+                btn.textContent = `技能按键${barId}`;
+                btn.addEventListener('click', handleZeroPointBarSelect);
+                rearShootTips.appendChild(btn);
+            });
+            
+            const rect = zeroPointSlot.getBoundingClientRect();
+            rearShootTips.style.display = 'flex';
+            rearShootTips.style.left = `${rect.right + 15}px`;
+            rearShootTips.style.top = `${rect.top}px`;
+        }
+        
+        function handleZeroPointBarSelect(e) {
+            e.stopPropagation();
+            const barId = e.target.dataset.bar;
+            
+            if (!zeroPointInstalledBars.includes(barId)) {
+                zeroPointInstalledBars.push(barId);
+            }
+            beeInstalledBars = beeInstalledBars.filter(id => id !== barId);
+            flameInstalledBars = flameInstalledBars.filter(id => id !== barId);
+            rearShootInstalledBars = rearShootInstalledBars.filter(id => id !== barId);
+            
+            const targetBarItem = document.getElementById(`bar-${barId}`);
+            targetBarItem.innerHTML = '<div class="extra-skill-img">零点聚爆</div>';
+            targetBarItem.style.display = 'block';
+            
+            rearShootTips.style.display = 'none';
+        }
+        
+        function removeAllZeroPointFromBars() {
+            zeroPointInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            zeroPointInstalledBars = [];
+        }
+
+        // ========== 烈焰射击核心逻辑 ==========
+        const createFlameSlotTips = (targetSlot) => {
+            slotTips.innerHTML = '';
+            
+            const leftBtn = document.createElement('button');
+            leftBtn.className = 'slot-btn';
+            leftBtn.dataset.bar = 'left';
+            leftBtn.textContent = '左键';
+            leftBtn.addEventListener('click', handleFlameBarSelect);
+            slotTips.appendChild(leftBtn);
+            
+            [1,2,3,4].forEach(barId => {
+                const btn = document.createElement('button');
+                btn.className = 'slot-btn';
+                btn.dataset.bar = barId;
+                btn.textContent = `技能按键${barId}`;
+                btn.addEventListener('click', handleFlameBarSelect);
+                slotTips.appendChild(btn);
+            });
+            
+            const rect = targetSlot.getBoundingClientRect();
+            slotTips.style.display = 'flex';
+            slotTips.style.left = `${rect.right + 15}px`;
+            slotTips.style.top = `${rect.top}px`;
+        };
+
+        function handleFlameBarSelect(e) {
+            e.stopPropagation();
+            const barId = e.target.dataset.bar;
+            
+            if (barId === 'left') {
+                const leftBarItem = document.getElementById('left-bar-item');
+                leftBarItem.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                leftBtnReplaced = true;
+                
+                // 新增：左键替换为烈焰射击后，射击槽开始闪烁
+                if (shootSlot) {
+                    shootSlot.classList.add('blink');
+                }
+                
+                slotTips.style.display = 'none';
+                return;
+            }
+            
+            if (!flameInstalledBars.includes(barId)) {
+                flameInstalledBars.push(barId);
+            }
+            beeInstalledBars = beeInstalledBars.filter(id => id !== barId);
+            rearShootInstalledBars = rearShootInstalledBars.filter(id => id !== barId);
+            
+            const targetBarItem = document.getElementById(`bar-${barId}`);
+            targetBarItem.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+            targetBarItem.style.display = 'block';
+            
+            slotTips.style.display = 'none';
+        }
+
+        // 修改：增加参数控制是否将烈焰射击放回背包（默认放回）
+        function removeAllFlameFromBars(shouldReturnToBackpack = true) {
+            if (leftBtnReplaced) {
+                const leftBarItem = document.getElementById('left-bar-item');
+                if (leftBarItem) {
+                    leftBarItem.innerHTML = '<div class="extra-skill-img">射击</div>';
+                }
+                leftBtnReplaced = false;
+            }
+            
+            flameInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            flameInstalledBars = [];
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => {
+                const slotId = `slot-${slot.dataset.slot}`;
+                if (slotFlameMap[slotId]) {
+                    slot.innerHTML = '';
+                    slot.classList.remove('has-stone');
+                    slotFlameMap[slotId] = false;
+                }
+            });
+            
+            // 只有当参数为true时，才将烈焰射击放回背包
+            if (shouldReturnToBackpack) {
+                backpackFlameSlot.classList.remove('empty');
+                backpackFlameSlot.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                backpackFlameSlot.appendChild(flameTips);
+            }
+        }
+
+        // 仅删除技能槽位烈焰射击的函数（不修改技能槽/背包）
+        function removeFlameFromBarsOnly() {
+            // 恢复左键默认技能
+            if (leftBtnReplaced) {
+                const leftBarItem = document.getElementById('left-bar-item');
+                if (leftBarItem) {
+                    leftBarItem.innerHTML = '<div class="extra-skill-img">射击</div>';
+                }
+                leftBtnReplaced = false;
+                // 停止射击槽闪烁
+                if (shootSlot) {
+                    shootSlot.classList.remove('blink');
+                }
+            }
+            
+            // 清空技能槽位中的烈焰射击，恢复为蜂群（隐藏状态）
+            flameInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            flameInstalledBars = [];
+        }
+        
+        // ========== 悬浮闪电射击核心逻辑 ==========
+        const createLightningSlotTips = (targetSlot) => {
+            slotTips.innerHTML = '';
+            
+            const leftBtn = document.createElement('button');
+            leftBtn.className = 'slot-btn';
+            leftBtn.dataset.bar = 'left';
+            leftBtn.textContent = '左键-附属技能：悬浮状态';
+            leftBtn.addEventListener('click', handleLightningBarSelect);
+            slotTips.appendChild(leftBtn);
+            
+            const rect = targetSlot.getBoundingClientRect();
+            slotTips.style.display = 'flex';
+            slotTips.style.left = `${rect.right + 15}px`;
+            slotTips.style.top = `${rect.top}px`;
+        };
+
+        function handleLightningBarSelect(e) {
+            e.stopPropagation();
+            const barId = e.target.dataset.bar;
+            
+            if (barId === 'left') {
+                const affiliateBarItem = document.getElementById('affiliate-bar-item');
+                // 替换附属技能：悬浮状态上的"悬浮射击"为"悬浮闪电射击"
+                if (affiliateBarItem && affiliateBarItem.innerHTML.includes('悬浮射击')) {
+                    affiliateBarItem.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                    leftBtnReplacedWithLightning = true;
+                }
+                
+                slotTips.style.display = 'none';
+                return;
+            }
+        }
+
+        // 修改：增加参数控制是否将悬浮闪电射击放回背包（默认放回）
+        function removeAllLightningFromBars(shouldReturnToBackpack = true) {
+            if (leftBtnReplacedWithLightning) {
+                const affiliateBarItem = document.getElementById('affiliate-bar-item');
+                if (affiliateBarItem) {
+                    // 将附属技能：悬浮状态上的"悬浮闪电射击"替换回"悬浮射击"
+                    affiliateBarItem.innerHTML = '<div class="extra-skill-img">悬浮射击</div>';
+                }
+                leftBtnReplacedWithLightning = false;
+            }
+            
+            lightningInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            lightningInstalledBars = [];
+            
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => {
+                const slotId = `slot-${slot.dataset.slot}`;
+                if (slotLightningMap[slotId]) {
+                    slot.innerHTML = '';
+                    slot.classList.remove('has-stone');
+                    slotLightningMap[slotId] = false;
+                }
+            });
+            
+            // 只有当参数为true时，才将悬浮闪电射击放回背包
+            if (shouldReturnToBackpack) {
+                backpackLightningSlot.classList.remove('empty');
+                backpackLightningSlot.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                backpackLightningSlot.appendChild(lightningTips);
+            }
+        }
+
+        // 仅删除技能槽位悬浮闪电射击的函数（不修改技能槽和背包）
+        function removeLightningFromBarsOnly() {
+            // 恢复左键默认附属技能
+            if (leftBtnReplacedWithLightning) {
+                const affiliateBarItem = document.getElementById('affiliate-bar-item');
+                if (affiliateBarItem) {
+                    affiliateBarItem.innerHTML = '<div class="extra-skill-img">悬浮射击</div>';
+                }
+                leftBtnReplacedWithLightning = false;
+            }
+            
+            // 清空技能槽位中的悬浮闪电射击，恢复为蜂群（隐藏状态）
+            lightningInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            lightningInstalledBars = [];
+        }
+
+        function removeAllBeeFromBars() {
+            beeInstalledBars.forEach(barId => {
+                const targetBarItem = document.getElementById(`bar-${barId}`);
+                if (targetBarItem) {
+                    targetBarItem.style.display = 'none';
+                }
+            });
+            beeInstalledBars = [];
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => {
+                const slotId = `slot-${slot.dataset.slot}`;
+                if (slotStoneMap[slotId]) {
+                    slot.innerHTML = '';
+                    slot.classList.remove('has-stone');
+                    slotStoneMap[slotId] = false;
+                }
+            });
+            backpackStoneSlot.classList.remove('empty');
+            backpackStoneSlot.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+            backpackStoneSlot.appendChild(stoneTips);
+        }
+
+        // ========== 通用交互逻辑 ==========
+        document.addEventListener('mousemove', (e) => {
+            if (isDraggingStone) updateFloatingPosition(e, floatingStone);
+            if (isDraggingFlame) updateFloatingPosition(e, floatingFlame);
+            if (isDraggingLightning) updateFloatingPosition(e, floatingLightning);
+            if (isDraggingGun) updateFloatingPosition(e, floatingGun);
+            if (isDraggingSupport) updateFloatingPosition(e, floatingSupport);
+            if (isDraggingShootSupport) updateFloatingPosition(e, floatingShootSupport);
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (isDraggingStone) handleStoneDrop(e);
+            if (isDraggingFlame) handleFlameDrop(e);
+            if (isDraggingLightning) handleLightningDrop(e);
+            if (isDraggingGun) handleGunDrop(e);
+            if (isDraggingSupport) handleSupportDrop(e);
+            if (isDraggingShootSupport) handleShootSupportDrop(e);
+        });
+
+        // 蜂群Tips按钮点击事件
+        function handleBeeBarSelect(e) {
+            e.stopPropagation();
+            const barId = e.target.dataset.bar;
+            
+            if (!beeInstalledBars.includes(barId)) {
+                beeInstalledBars.push(barId);
+            }
+            rearShootInstalledBars = rearShootInstalledBars.filter(id => id !== barId);
+            flameInstalledBars = flameInstalledBars.filter(id => id !== barId);
+            
+            const targetBarItem = document.getElementById(`bar-${barId}`);
+            targetBarItem.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+            targetBarItem.style.display = 'block';
+            
+            slotTips.style.display = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!slotTips.contains(e.target) && e.target !== currentSkillSlot && !Array.from(document.querySelectorAll('.skill-slot')).includes(e.target)) {
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+            }
+            if (!rearShootTips.contains(e.target) && e.target !== rearShootSlot) {
+                rearShootTips.style.display = 'none';
+            }
+            // 保留需要装备手枪提示的点击隐藏逻辑，但优先级低于定时
+            if (!needGunTips.contains(e.target) && !e.target.closest('.skill-slots-container')) {
+                needGunTips.style.display = 'none';
+            }
+            if (!stoneTips.contains(e.target) && e.target !== backpackStoneSlot) {
+                stoneTips.style.display = 'none';
+            }
+            if (!flameTips.contains(e.target) && e.target !== backpackFlameSlot) {
+                flameTips.style.display = 'none';
+            }
+            if (!gunTips.contains(e.target) && e.target !== backpackGunSlot) {
+                gunTips.style.display = 'none';
+            }
+            if (!shootSupportTips.contains(e.target) && e.target !== backpackShootSupportSlot) {
+                shootSupportTips.style.display = 'none';
+            }
+            
+            // 添加天赋点tips的关闭逻辑
+            const talentTips = [talentATips, talentBTips, talentCTips, talentDTips];
+            const talentPoints = [talentA, talentB, talentC, talentD];
+            const isInTalentTips = talentTips.some(tips => tips.contains(e.target));
+            const isInTalentPoint = talentPoints.some(point => point.contains(e.target));
+            
+            if (!isInTalentTips && !isInTalentPoint && fixedTips) {
+                // 移除确认按钮
+                const confirmBtn = fixedTips.querySelector('.confirm-btn');
+                if (confirmBtn) {
+                    confirmBtn.remove();
+                }
+                // 关闭tips
+                fixedTips.style.display = 'none';
+                fixedTips = null;
+            }
+        });
+
+        function updateFloatingPosition(e, floatingElement) {
+            floatingElement.style.left = `${e.clientX - 30}px`;
+            floatingElement.style.top = `${e.clientY - 30}px`;
+        }
+
+        function isPointInElement(e, element) {
+            const rect = element.getBoundingClientRect();
+            return (
+                e.clientX >= rect.left - 5 &&
+                e.clientX <= rect.right + 5 &&
+                e.clientY >= rect.top - 5 &&
+                e.clientY <= rect.bottom + 5
+            );
+        }
+
+        // ========== 蜂群放置逻辑 ==========
+        function handleStoneDrop(e) {
+            isDraggingStone = false;
+            floatingStone.style.display = 'none';
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.remove('highlight'));
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceStone !== 'backpack') {
+                removeAllBeeFromBars();
+                // 将技能石放回背包
+                if (backpackStoneSlot.classList.contains('empty')) {
+                    backpackStoneSlot.classList.remove('empty');
+                    backpackStoneSlot.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                    backpackStoneSlot.appendChild(stoneTips);
+                }
+                // 清空原技能槽
+                const sourceSlot = document.querySelector(`[data-slot="${dragSourceStone.replace('slot-', '')}"]`);
+                if (sourceSlot) {
+                    sourceSlot.innerHTML = '';
+                    sourceSlot.classList.remove('has-stone');
+                    slotStoneMap[dragSourceStone] = false;
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceStone = null;
+                return;
+            }
+
+            const targetSkillSlot = Array.from(skillSlots).find(slot => isPointInElement(e, slot));
+            if (targetSkillSlot) {
+                // 检查目标技能槽的类型，非辅助技能不能放入辅助技能槽
+                if (targetSkillSlot.dataset.type === 'support') {
+                    // 如果是辅助技能槽，将技能石放回背包
+                    if (backpackStoneSlot.classList.contains('empty')) {
+                        backpackStoneSlot.classList.remove('empty');
+                        backpackStoneSlot.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                        backpackStoneSlot.appendChild(stoneTips);
+                    }
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">非辅助技能不能放入辅助技能槽</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceStone = null;
+                    return;
+                }
+                
+                const targetSlotId = `slot-${targetSkillSlot.dataset.slot}`;
+                
+                if (dragSourceStone === 'backpack') {
+                    backpackStoneSlot.classList.add('empty');
+                    backpackStoneSlot.innerHTML = '';
+                } else if (dragSourceStone && dragSourceStone !== targetSlotId) {
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceStone.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotStoneMap[dragSourceStone] = false;
+                    }
+                }
+
+                targetSkillSlot.innerHTML = '<div class="skill-stone-img">蜂群</div>';
+                targetSkillSlot.classList.add('has-stone');
+                slotStoneMap[targetSlotId] = true;
+                currentSkillSlot = targetSkillSlot;
+                dragSourceStone = targetSlotId;
+
+                // 蜂群Tips按钮绑定专属事件
+                slotTips.innerHTML = '';
+                [1,2,3,4].forEach(barId => {
+                    const btn = document.createElement('button');
+                    btn.className = 'slot-btn';
+                    btn.dataset.bar = barId;
+                    btn.textContent = `技能按键${barId}`;
+                    btn.addEventListener('click', handleBeeBarSelect);
+                    slotTips.appendChild(btn);
+                });
+                
+                const rect = targetSkillSlot.getBoundingClientRect();
+                slotTips.style.display = 'flex';
+                slotTips.style.left = `${rect.right + 15}px`;
+                slotTips.style.top = `${rect.top}px`;
+            } else {
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceStone = null;
+            }
+        }
+
+        // ========== 烈焰射击放置逻辑 ==========
+        function handleFlameDrop(e) {
+            isDraggingFlame = false;
+            floatingFlame.style.display = 'none';
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.remove('highlight'));
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceFlame !== 'backpack') {
+                // 烈焰射击拖回背包时，调用默认参数（放回背包）
+                removeAllFlameFromBars();
+                // 将烈焰射击放回背包
+                if (backpackFlameSlot.classList.contains('empty')) {
+                    backpackFlameSlot.classList.remove('empty');
+                    backpackFlameSlot.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                    backpackFlameSlot.appendChild(flameTips);
+                }
+                // 清空原技能槽
+                const sourceSlot = document.querySelector(`[data-slot="${dragSourceFlame.replace('slot-', '')}"]`);
+                if (sourceSlot) {
+                    sourceSlot.innerHTML = '';
+                    sourceSlot.classList.remove('has-stone');
+                    slotFlameMap[dragSourceFlame] = false;
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceFlame = null;
+                return;
+            }
+
+            const targetSkillSlot = Array.from(skillSlots).find(slot => isPointInElement(e, slot));
+            if (targetSkillSlot) {
+                // 检查是否装备了手枪
+                const noGun = !equipmentHasGun;
+                if (noGun) {
+                    // 如果没有装备手枪，显示需要装备手枪的提示
+                    const needGunTips = document.getElementById('need-gun-tips');
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    needGunTips.style.display = 'block';
+                    needGunTips.style.left = `${rect.right + 15}px`;
+                    needGunTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        needGunTips.style.display = 'none';
+                    }, 3000);
+                }
+                
+                // 检查目标技能槽的类型，非辅助技能不能放入辅助技能槽
+                if (targetSkillSlot.dataset.type === 'support') {
+                    // 如果是辅助技能槽，将烈焰射击放回背包
+                    if (backpackFlameSlot.classList.contains('empty')) {
+                        backpackFlameSlot.classList.remove('empty');
+                        backpackFlameSlot.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                        backpackFlameSlot.appendChild(flameTips);
+                    }
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">非辅助技能不能放入辅助技能槽</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceFlame = null;
+                    return;
+                }
+                
+                const targetSlotId = `slot-${targetSkillSlot.dataset.slot}`;
+                
+                if (dragSourceFlame === 'backpack') {
+                    backpackFlameSlot.classList.add('empty');
+                    backpackFlameSlot.innerHTML = '';
+                } else if (dragSourceFlame && dragSourceFlame !== targetSlotId) {
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceFlame.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotFlameMap[dragSourceFlame] = false;
+                    }
+                }
+
+                targetSkillSlot.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                targetSkillSlot.classList.add('has-stone');
+                slotFlameMap[targetSlotId] = true;
+                currentSkillSlot = targetSkillSlot;
+                dragSourceFlame = targetSlotId;
+                
+                // 只有当装备了手枪时，才显示技能槽位的tips内容
+                if (!noGun) {
+                    // 烈焰射击的tips内容
+                    createFlameSlotTips(targetSkillSlot);
+                }
+            } else {
+                // 如果没有放置在技能槽或背包，将烈焰射击放回背包
+                if (dragSourceFlame !== 'backpack') {
+                    removeAllFlameFromBars();
+                    if (backpackFlameSlot.classList.contains('empty')) {
+                        backpackFlameSlot.classList.remove('empty');
+                        backpackFlameSlot.innerHTML = '<div class="flame-shoot-img">烈焰射击</div>';
+                        backpackFlameSlot.appendChild(flameTips);
+                    }
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceFlame.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotFlameMap[dragSourceFlame] = false;
+                    }
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceFlame = null;
+            }
+        }
+        
+        // ========== 悬浮闪电射击放置逻辑 ==========
+        function handleLightningDrop(e) {
+            isDraggingLightning = false;
+            floatingLightning.style.display = 'none';
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.remove('highlight'));
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceLightning !== 'backpack') {
+                // 悬浮闪电射击拖回背包时，调用默认参数（放回背包）
+                removeAllLightningFromBars();
+                // 将悬浮闪电射击放回背包
+                if (backpackLightningSlot.classList.contains('empty')) {
+                    backpackLightningSlot.classList.remove('empty');
+                    backpackLightningSlot.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                    backpackLightningSlot.appendChild(lightningTips);
+                }
+                // 清空原技能槽
+                const sourceSlot = document.querySelector(`[data-slot="${dragSourceLightning.replace('slot-', '')}"]`);
+                if (sourceSlot) {
+                    sourceSlot.innerHTML = '';
+                    sourceSlot.classList.remove('has-stone');
+                    slotLightningMap[dragSourceLightning] = false;
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceLightning = null;
+                return;
+            }
+
+            const targetSkillSlot = Array.from(skillSlots).find(slot => isPointInElement(e, slot));
+            if (targetSkillSlot) {
+                // 检查目标技能槽的类型，非辅助技能不能放入辅助技能槽
+                if (targetSkillSlot.dataset.type === 'support') {
+                    // 如果是辅助技能槽，将悬浮闪电射击放回背包
+                    if (backpackLightningSlot.classList.contains('empty')) {
+                        backpackLightningSlot.classList.remove('empty');
+                        backpackLightningSlot.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                        backpackLightningSlot.appendChild(lightningTips);
+                    }
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">非辅助技能不能放入辅助技能槽</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceLightning = null;
+                    return;
+                }
+                
+                const targetSlotId = `slot-${targetSkillSlot.dataset.slot}`;
+                
+                if (dragSourceLightning === 'backpack') {
+                    backpackLightningSlot.classList.add('empty');
+                    backpackLightningSlot.innerHTML = '';
+                } else if (dragSourceLightning && dragSourceLightning !== targetSlotId) {
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceLightning.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotLightningMap[dragSourceLightning] = false;
+                    }
+                }
+
+                targetSkillSlot.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                targetSkillSlot.classList.add('has-stone');
+                slotLightningMap[targetSlotId] = true;
+                currentSkillSlot = targetSkillSlot;
+                dragSourceLightning = targetSlotId;
+
+                // 未装备手枪时弹出持续2秒的提示
+                if (!equipmentHasGun) {
+                    const rect = skillSlotsContainer.getBoundingClientRect();
+                    needGunTips.innerHTML = '<p>需要装备手枪</p>';
+                    needGunTips.style.display = 'block';
+                    needGunTips.style.left = `${rect.left + 10}px`;
+                    needGunTips.style.top = `${rect.top + 10}px`;
+                    setTimeout(() => {
+                        needGunTips.style.display = 'none';
+                    }, 2000);
+                    slotTips.style.display = 'none';
+                    return;
+                }
+                
+                // 悬浮闪电射击的tips内容
+                createLightningSlotTips(targetSkillSlot);
+            } else {
+                // 如果没有放置在技能槽或背包，将悬浮闪电射击放回背包
+                if (dragSourceLightning !== 'backpack') {
+                    removeAllLightningFromBars();
+                    if (backpackLightningSlot.classList.contains('empty')) {
+                        backpackLightningSlot.classList.remove('empty');
+                        backpackLightningSlot.innerHTML = '<div class="flame-shoot-img">悬浮闪电射击</div>';
+                        backpackLightningSlot.appendChild(lightningTips);
+                    }
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceLightning.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotLightningMap[dragSourceLightning] = false;
+                    }
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceLightning = null;
+            }
+        }
+
+        // ========== 辅助技能石放置逻辑 ==========
+        function handleSupportDrop(e) {
+            isDraggingSupport = false;
+            floatingSupport.style.display = 'none';
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.remove('highlight'));
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceSupport !== 'backpack') {
+                // 将辅助技能石放回背包
+                if (backpackSupportSlot.classList.contains('empty')) {
+                    backpackSupportSlot.classList.remove('empty');
+                    backpackSupportSlot.innerHTML = '<div class="skill-stone-img">辅助技能1</div>';
+                    backpackSupportSlot.appendChild(supportTips);
+                }
+                // 清空原技能槽
+                const sourceSlot = document.querySelector(`[data-slot="${dragSourceSupport.replace('slot-', '')}"]`);
+                if (sourceSlot) {
+                    sourceSlot.innerHTML = '';
+                    sourceSlot.classList.remove('has-stone');
+                    slotSupportMap[dragSourceSupport] = false;
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceSupport = null;
+                return;
+            }
+
+            const targetSkillSlot = Array.from(skillSlots).find(slot => isPointInElement(e, slot));
+            if (targetSkillSlot) {
+                // 检查目标技能槽的类型，辅助技能石只能放置在辅助技能槽
+                if (targetSkillSlot.dataset.type !== 'support') {
+                    // 如果不是辅助技能槽，不允许放置
+                    slotTips.style.display = 'none';
+                    currentSkillSlot = null;
+                    dragSourceSupport = null;
+                    return;
+                }
+                
+                // 检查是否有对应的主技能石
+                let hasMainSkill = false;
+                const targetSlotId = `slot-${targetSkillSlot.dataset.slot}`;
+                const targetSlotData = targetSkillSlot.dataset.slot;
+                
+                // 获取当前辅助技能槽所属的行
+                const parentRow = targetSkillSlot.closest('.skill-row, .extra-skill-row');
+                if (parentRow) {
+                    if (parentRow.classList.contains('skill-row')) {
+                        // 标准技能行：检查该行的主技能槽是否有技能石
+                        const rowNumber = targetSlotData.split('-')[0];
+                        const mainSkillSlot = parentRow.querySelector(`.skill-slot[data-slot="${rowNumber}"][data-type="active"]`);
+                        if (mainSkillSlot && mainSkillSlot.innerHTML.trim() !== '' && !mainSkillSlot.innerHTML.includes('技能宝石孔位')) {
+                            hasMainSkill = true;
+                        }
+                    } else if (parentRow.classList.contains('extra-skill-row')) {
+                        // 额外技能行：检查该行的主技能槽是否存在（额外技能槽本身就是激活状态）
+                        const mainSkillSlot = parentRow.querySelector('.extra-skill-slot');
+                        if (mainSkillSlot) {
+                            hasMainSkill = true;
+                        }
+                    }
+                }
+                
+                // 如果没有主技能石，将辅助技能石放回背包并显示提示
+                if (!hasMainSkill) {
+                    // 将辅助技能石放回背包
+                    if (dragSourceSupport !== 'backpack') {
+                        if (backpackSupportSlot.classList.contains('empty')) {
+                            backpackSupportSlot.classList.remove('empty');
+                            backpackSupportSlot.innerHTML = '<div class="skill-stone-img">辅助技能1</div>';
+                            backpackSupportSlot.appendChild(supportTips);
+                        }
+                        // 清空原技能槽
+                        const sourceSlot = document.querySelector(`[data-slot="${dragSourceSupport.replace('slot-', '')}"]`);
+                        if (sourceSlot) {
+                            sourceSlot.innerHTML = '';
+                            sourceSlot.classList.remove('has-stone');
+                            slotSupportMap[dragSourceSupport] = false;
+                        }
+                    }
+                    
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">需要先安装非辅助技能</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceSupport = null;
+                    return;
+                }
+                
+                if (dragSourceSupport === 'backpack') {
+                    backpackSupportSlot.classList.add('empty');
+                    backpackSupportSlot.innerHTML = '';
+                } else if (dragSourceSupport && dragSourceSupport !== targetSlotId) {
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceSupport.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotSupportMap[dragSourceSupport] = false;
+                    }
+                }
+
+                targetSkillSlot.innerHTML = '<div class="support-skill-img">辅助技能1</div>';
+                targetSkillSlot.classList.add('has-stone');
+                slotSupportMap[targetSlotId] = true;
+                currentSkillSlot = targetSkillSlot;
+                dragSourceSupport = targetSlotId;
+
+                // 辅助技能石的tips内容
+                slotTips.innerHTML = '';
+                slotTips.innerHTML = `
+                    <p>物品类型：辅助</p>
+                    <p>技能等级：2</p>
+                    <p>需求等级：1</p>
+                    <p class="tips-special">物品属性：辅助宝石</p>
+                `;
+                
+                const rect = targetSkillSlot.getBoundingClientRect();
+                slotTips.style.display = 'block';
+                slotTips.style.left = `${rect.right + 15}px`;
+                slotTips.style.top = `${rect.top}px`;
+            } else {
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceSupport = null;
+            }
+        }
+        
+        // ========== 射击辅助技能石放置逻辑 ==========
+        function handleShootSupportDrop(e) {
+            isDraggingShootSupport = false;
+            floatingShootSupport.style.display = 'none';
+            const skillSlots = document.querySelectorAll('.skill-slot');
+            skillSlots.forEach(slot => slot.classList.remove('highlight'));
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceShootSupport !== 'backpack') {
+                // 将射击辅助技能石放回背包
+                if (backpackShootSupportSlot.classList.contains('empty')) {
+                    backpackShootSupportSlot.classList.remove('empty');
+                    backpackShootSupportSlot.innerHTML = '<div class="support-skill-img">射击辅助</div>';
+                    backpackShootSupportSlot.appendChild(shootSupportTips);
+                }
+                // 清空原技能槽
+                const sourceSlot = document.querySelector(`[data-slot="${dragSourceShootSupport.replace('slot-', '')}"]`);
+                if (sourceSlot) {
+                    sourceSlot.innerHTML = '';
+                    sourceSlot.classList.remove('has-stone');
+                    slotShootSupportMap[dragSourceShootSupport] = false;
+                }
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceShootSupport = null;
+                return;
+            }
+
+            const targetSkillSlot = Array.from(skillSlots).find(slot => isPointInElement(e, slot));
+            if (targetSkillSlot) {
+                // 检查目标技能槽的类型，辅助技能石只能放置在辅助技能槽
+                if (targetSkillSlot.dataset.type !== 'support') {
+                    // 如果不是辅助技能槽，不允许放置
+                    slotTips.style.display = 'none';
+                    currentSkillSlot = null;
+                    dragSourceShootSupport = null;
+                    return;
+                }
+                
+                // 检查是否有对应的主技能石
+                let hasMainSkill = false;
+                let isShootSkill = false;
+                const targetSlotId = `slot-${targetSkillSlot.dataset.slot}`;
+                const targetSlotData = targetSkillSlot.dataset.slot;
+                
+                // 获取当前辅助技能槽所属的行
+                const parentRow = targetSkillSlot.closest('.skill-row, .extra-skill-row');
+                if (parentRow) {
+                    if (parentRow.classList.contains('skill-row')) {
+                        // 标准技能行：检查该行的主技能槽是否有技能石，且是否为射击类技能
+                        const rowNumber = targetSlotData.split('-')[0];
+                        const mainSkillSlot = parentRow.querySelector(`.skill-slot[data-slot="${rowNumber}"][data-type="active"]`);
+                        if (mainSkillSlot && mainSkillSlot.innerHTML.trim() !== '' && !mainSkillSlot.innerHTML.includes('技能宝石孔位')) {
+                            hasMainSkill = true;
+                            // 检查是否为射击类技能
+                            const mainSkillContent = mainSkillSlot.innerHTML;
+                            if (mainSkillContent.includes('射击') || 
+                                mainSkillContent.includes('悬浮射击') || 
+                                mainSkillContent.includes('后撤射击') || 
+                                mainSkillContent.includes('烈焰射击')) {
+                                isShootSkill = true;
+                            }
+                        }
+                    } else if (parentRow.classList.contains('extra-skill-row')) {
+                        // 额外技能行：检查该行的主技能槽是否存在（额外技能槽本身就是激活状态）
+                        const mainSkillSlot = parentRow.querySelector('.extra-skill-slot');
+                        if (mainSkillSlot) {
+                            hasMainSkill = true;
+                            // 检查是否为射击类技能
+                            const mainSkillContent = mainSkillSlot.innerHTML;
+                            if (mainSkillContent.includes('射击') || 
+                                mainSkillContent.includes('悬浮射击') || 
+                                mainSkillContent.includes('后撤射击') || 
+                                mainSkillContent.includes('烈焰射击')) {
+                                isShootSkill = true;
+                            }
+                        }
+                    }
+                }
+                
+                // 如果没有主技能石，将射击辅助技能石放回背包并显示提示
+                if (!hasMainSkill) {
+                    // 将射击辅助技能石放回背包
+                    if (dragSourceShootSupport !== 'backpack') {
+                        if (backpackShootSupportSlot.classList.contains('empty')) {
+                            backpackShootSupportSlot.classList.remove('empty');
+                            backpackShootSupportSlot.innerHTML = '<div class="support-skill-img">射击辅助</div>';
+                            backpackShootSupportSlot.appendChild(shootSupportTips);
+                        }
+                        // 清空原技能槽
+                        const sourceSlot = document.querySelector(`[data-slot="${dragSourceShootSupport.replace('slot-', '')}"]`);
+                        if (sourceSlot) {
+                            sourceSlot.innerHTML = '';
+                            sourceSlot.classList.remove('has-stone');
+                            slotShootSupportMap[dragSourceShootSupport] = false;
+                        }
+                    }
+                    
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">需要先安装非辅助技能</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceShootSupport = null;
+                    return;
+                }
+                
+                // 如果主技能不是射击类技能，将射击辅助技能石放回背包并显示提示
+                if (!isShootSkill) {
+                    // 将射击辅助技能石放回背包
+                    if (dragSourceShootSupport !== 'backpack') {
+                        if (backpackShootSupportSlot.classList.contains('empty')) {
+                            backpackShootSupportSlot.classList.remove('empty');
+                            backpackShootSupportSlot.innerHTML = '<div class="support-skill-img">射击辅助</div>';
+                            backpackShootSupportSlot.appendChild(shootSupportTips);
+                        }
+                        // 清空原技能槽
+                        const sourceSlot = document.querySelector(`[data-slot="${dragSourceShootSupport.replace('slot-', '')}"]`);
+                        if (sourceSlot) {
+                            sourceSlot.innerHTML = '';
+                            sourceSlot.classList.remove('has-stone');
+                            slotShootSupportMap[dragSourceShootSupport] = false;
+                        }
+                    }
+                    
+                    // 显示提示
+                    const slotTips = document.getElementById('slot-tips');
+                    slotTips.innerHTML = '<p style="color: #ff4500;">仅能辅助射击类技能</p>';
+                    const rect = targetSkillSlot.getBoundingClientRect();
+                    slotTips.style.display = 'block';
+                    slotTips.style.left = `${rect.right + 15}px`;
+                    slotTips.style.top = `${rect.top}px`;
+                    
+                    // 3秒后自动隐藏提示
+                    setTimeout(() => {
+                        slotTips.style.display = 'none';
+                    }, 3000);
+                    
+                    currentSkillSlot = null;
+                    dragSourceShootSupport = null;
+                    return;
+                }
+                
+                if (dragSourceShootSupport === 'backpack') {
+                    backpackShootSupportSlot.classList.add('empty');
+                    backpackShootSupportSlot.innerHTML = '';
+                } else if (dragSourceShootSupport && dragSourceShootSupport !== targetSlotId) {
+                    const sourceSlot = document.querySelector(`[data-slot="${dragSourceShootSupport.replace('slot-', '')}"]`);
+                    if (sourceSlot) {
+                        sourceSlot.innerHTML = '';
+                        sourceSlot.classList.remove('has-stone');
+                        slotShootSupportMap[dragSourceShootSupport] = false;
+                    }
+                }
+
+                targetSkillSlot.innerHTML = '<div class="support-skill-img">射击辅助</div>';
+                targetSkillSlot.classList.add('has-stone');
+                slotShootSupportMap[targetSlotId] = true;
+                currentSkillSlot = targetSkillSlot;
+                dragSourceShootSupport = targetSlotId;
+
+                // 射击辅助技能石的tips内容
+                slotTips.innerHTML = '';
+                slotTips.innerHTML = `
+                    <p>物品类型：辅助</p>
+                    <p>技能等级：2</p>
+                    <p>需求等级：1</p>
+                    <p class="tips-special">物品属性：辅助宝石</p>
+                    <p class="tips-special">辅助技能标签：射击</p>
+                `;
+                
+                const rect = targetSkillSlot.getBoundingClientRect();
+                slotTips.style.display = 'block';
+                slotTips.style.left = `${rect.right + 15}px`;
+                slotTips.style.top = `${rect.top}px`;
+            } else {
+                slotTips.style.display = 'none';
+                currentSkillSlot = null;
+                dragSourceShootSupport = null;
+            }
+        }
+
+        // ========== 手枪放置逻辑 ==========
+        function handleGunDrop(e) {
+            isDraggingGun = false;
+            floatingGun.style.display = 'none';
+            equipmentSlot.classList.remove('highlight');
+            backpackArea.classList.remove('highlight');
+
+            const isInBackpack = isPointInElement(e, backpackArea);
+            if (isInBackpack && dragSourceGun !== 'backpack') {
+                backpackGunSlot.classList.remove('empty');
+                backpackGunSlot.innerHTML = '<div class="gun-img">手枪</div>';
+                backpackGunSlot.appendChild(gunTips);
+                
+                equipmentSlot.innerHTML = '';
+                equipmentSlot.classList.remove('has-gun');
+                equipmentHasGun = false;
+
+                removeExtraSkillSlots();
+                removeSpecialSkillBars();
+                
+                // 关键修复：手枪放回背包时，仅清理技能槽位的烈焰射击，保留技能系统界面的
+                removeFlameFromBarsOnly();
+                
+                dragSourceGun = null;
+                return;
+            }
+
+            const isInEquipment = isPointInElement(e, equipmentSlot);
+            if (isInEquipment) {
+                if (dragSourceGun === 'backpack') {
+                    backpackGunSlot.classList.add('empty');
+                    backpackGunSlot.innerHTML = '';
+                }
+
+                equipmentSlot.innerHTML = '<div class="gun-img">手枪</div>';
+                equipmentSlot.classList.add('has-gun');
+                equipmentHasGun = true;
+                dragSourceGun = 'equipment';
+
+                createExtraSkillSlots();
+                createSpecialSkillBars();
+                
+                // 如果B天赋已经确认，重新添加零点聚爆技能槽（确保在最后一个位置）
+                if (talentStates.b.confirmed) {
+                    addZeroPointSkillSlot();
+                }
+            } else {
+                if (dragSourceGun === 'equipment') {
+                    equipmentSlot.innerHTML = '<div class="gun-img">手枪</div>';
+                    equipmentSlot.classList.add('has-gun');
+                    equipmentHasGun = true;
+                    createExtraSkillSlots();
+                    createSpecialSkillBars();
+                    
+                    // 如果B天赋已经确认，重新添加零点聚爆技能槽（确保在最后一个位置）
+                    if (talentStates.b.confirmed) {
+                        addZeroPointSkillSlot();
+                    }
+                }
+                dragSourceGun = null;
+            }
+        }
+    </script>
+</body>
+</html>
